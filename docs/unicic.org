@@ -1,0 +1,23 @@
+#+title: Multivariate Feldman-Cousins Unified Approach
+#+LATEX_HEADER: \usepackage[margin=1.0in]{geometry}
+#+options: ':t
+
+
+The notation here partially follows that used in the [[https://arxiv.org/abs/physics/9711021][Feldman-Cousins "unified" confidence interval construction]].  A model $N_{pred}(\vec{p})$ is defined which predicts an expected value for a /dataset/ at a given point in the model parameter space $\vec{p}$ and which takes the same form as a (singular) /measured/ and /binned/ dataset $N_{meas} \equiv \{n_i\},\ i \in \{0, n_{bins}-1\}$, where $n_i$ counts the number of events in bin $i$.
+
+The "unified approach" of Feldman-Cousins (FC) for constructing /confidence regions/ defines an /ordering principle/ based on the likelihood ratio:
+\[ R_k(\vec{p}) = \frac{\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{p})\ )}{\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q}_{best})\ )} \]
+where $\vec{q} = \vec{q}_{best}$ maximizes the likelihood $\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q})\ )$ for dataset $N_k$ to be produced give the prediction $N_{pred}(\vec{q})$.  The maximizing $\vec{q}_{best}$ is found over the allowed model parameter space or in practice a predefined subset of the possibly infinite parameter space.  The $N_k,\ k \in [1,K]$ is one of $K$ results of a "toy simulation" performed at $\vec{p}$.  Each "toy" represents a fluctuation applied to $N_{pred}(\vec{p})$.  Note, $N_k$ in both numerator and denominator of $R_k$ is evaluated at $\vec{p}$.
+
+FC says that in the Gaussian regime the likelihood ratio can be approximated as a $\Delta \chi^2$,
+\[ R_k(\vec{p}) \approx \Delta \chi_k^2(\vec{p}) = \chi^2(N_k, \vec{p}) - \chi^2(N_k,\vec{q}_{best})\]
+where, for example, each of the two terms in the difference is defined at a point in parameter space $\vec{q}$ as
+\[\chi^2(N_k, \vec{q}) = (N_k - N_{pred}(\vec{q}))^\intercal \cdot \Sigma^{-1} \cdot (N_k - N_{pred}(\vec{q}))\]
+Here, $\Sigma$ represents a covariance matrix which may include terms for statistical and systematic uncertainty and may be a function of the parameter space point $\vec{p}$ under consideration or the fluctuated toy dataset $N_k$ or in the case of the $\chi^2(N_k, \vec{q}_{best})$, every point in parameter space $\vec{q}$ tested in searching for $\vec{q}_{best}$.  
+
+Next, a /critical/ $\Delta \chi_c^2(\vec{p})$ is calculated such that it is greater than exactly $\alpha$ (/eg/ 90%) of the entries in the set $\{\Delta \chi^2(N_k, \vec{p})\}$ and also a
+\[ \Delta \chi^2_{meas}(\vec{p}) = \chi^2(N_{meas}, \vec{p}) - \chi^2(N_{meas}, \vec{q}_{best})\]
+is calculated.  Again, $\vec{q}_{best}$ is found by maximizing the likeloihood as above.   Finally, the set of points $\{\vec{p}\}$ spanning the CR is defined by:
+\[ \{\ \vec{p}\ |\ \Delta \chi^2_{meas}(\vec{p}) < \Delta \chi^2_c(\vec{p})\ \} \]
+
+
