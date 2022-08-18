@@ -1,23 +1,156 @@
-#+title: Multivariate Feldman-Cousins Unified Approach
-#+LATEX_HEADER: \usepackage[margin=1.0in]{geometry}
+#+title: Applying Feldman-Cousins Unified Approach 
+#+LATEX_HEADER: \usepackage[margin=0.95in]{geometry}
+#+latex_header: \usepackage{algorithm}
+#+latex_header: \usepackage{algpseudocode}
+#+latex_header: \algnewcommand\algorithmicforeach{\textbf{for each}}
+#+latex_header: \algdef{S}[FOR]{ForEach}[1]{\algorithmicforeach\ #1\ \algorithmicdo}
+#+latex_header: \def\qbest{\vec{q}_{best}}
+#+latex_header: \def\ntoys{n_{toys}}
+#+latex_header: \def\nmeas{N_{meas}}
+#+latex_header: \def\npred{N_{pred}}
+#+latex_header: \def\pspace{\{\vec p\}}
+#+latex_header: \def\probp{\mathcal{P}}
 #+options: ':t
 
+* Multivariate F-C Formalism
 
-The notation here partially follows that used in the [[https://arxiv.org/abs/physics/9711021][Feldman-Cousins "unified" confidence interval construction]].  A model $N_{pred}(\vec{p})$ is defined which predicts an expected value for a /dataset/ at a given point in the model parameter space $\vec{p}$ and which takes the same form as a (singular) /measured/ and /binned/ dataset $N_{meas} \equiv \{n_i\},\ i \in \{0, n_{bins}-1\}$, where $n_i$ counts the number of events in bin $i$.
+The notation here partially follows that used in the [[https://arxiv.org/abs/physics/9711021][Feldman-Cousins "unified" confidence interval construction]].  A model $N_{pred}(\vec{p})$ is defined which predicts an expected value for a /dataset/ at a given point in the model parameter space $\vec{p}$ and which takes the same form as a (singular) /measured/ and /binned/ dataset in equation [[eqn:nmeas]] where $n_i$ counts the number of events in bin $i$.
 
-The "unified approach" of Feldman-Cousins (FC) for constructing /confidence regions/ defines an /ordering principle/ based on the likelihood ratio:
-\[ R_k(\vec{p}) = \frac{\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{p})\ )}{\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q}_{best})\ )} \]
-where $\vec{q} = \vec{q}_{best}$ maximizes the likelihood $\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q})\ )$ for dataset $N_k$ to be produced give the prediction $N_{pred}(\vec{q})$.  The maximizing $\vec{q}_{best}$ is found over the allowed model parameter space or in practice a predefined subset of the possibly infinite parameter space.  The $N_k,\ k \in [1,K]$ is one of $K$ results of a "toy simulation" performed at $\vec{p}$.  Each "toy" represents a fluctuation applied to $N_{pred}(\vec{p})$.  Note, $N_k$ in both numerator and denominator of $R_k$ is evaluated at $\vec{p}$.
+#+name: eqn:nmeas
+\begin{equation}
+N_{meas} \equiv \{n_i\},\ i \in \{0, n_{bins}-1\}
+\end{equation}
 
-FC says that in the Gaussian regime the likelihood ratio can be approximated as a $\Delta \chi^2$,
-\[ R_k(\vec{p}) \approx \Delta \chi_k^2(\vec{p}) = \chi^2(N_k, \vec{p}) - \chi^2(N_k,\vec{q}_{best})\]
-where, for example, each of the two terms in the difference is defined at a point in parameter space $\vec{q}$ as
-\[\chi^2(N_k, \vec{q}) = (N_k - N_{pred}(\vec{q}))^\intercal \cdot \Sigma^{-1} \cdot (N_k - N_{pred}(\vec{q}))\]
+The "unified approach" of Feldman-Cousins (FC) for constructing /confidence regions/ defines an /ordering principle/ based on the likelihood ratio in [[eqn:rk]].
+
+#+name: eqn:rk
+\begin{equation}
+R_k(\vec{p}) = \frac{\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{p})\ )}{\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q}_{best})\ )}
+\end{equation}
+
+There, $\vec{q} = \vec{q}_{best}$ maximizes the likelihood $\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q})\ )$ for dataset $N_k$ to be produced give the prediction $N_{pred}(\vec{q})$.  The maximizing $\vec{q}_{best}$ is found over the allowed model parameter space or in practice a predefined subset of the possibly infinite parameter space.  The $N_k,\ k \in [1,K]$ is one of $K$ results of a "toy simulation" performed at $\vec{p}$ which produces data in the same form as $N_{meas}$, namely the result of each "toy" represents a fluctuation applied to $N_{pred}(\vec{p})$.  Note, $N_k$ in both numerator and denominator of $R_k$ is evaluated at parameter point $\vec{p}$.
+
+FC says that in the Gaussian regime the likelihood ratio can be approximated as a $\Delta \chi^2$ as in equation [[eqn:rkchi]].
+
+#+name: eqn:rkchi
+\begin{equation}
+R_k(\vec{p}) \approx \Delta \chi_k^2(\vec{p}) = \chi^2(N_k, \vec{p}) - \chi^2(N_k,\vec{q}_{best})
+\end{equation}
+There, for example, each of the two terms in the difference is defined at a point in parameter space $\vec{q}$ as in equation [[eqn:chi]].
+#+name: eqn:chi
+\begin{equation}
+\chi^2(N_k, \vec{q}) = (N_k - N_{pred}(\vec{q}))^\intercal \cdot \Sigma^{-1} \cdot (N_k - N_{pred}(\vec{q}))
+\end{equation}
 Here, $\Sigma$ represents a covariance matrix which may include terms for statistical and systematic uncertainty and may be a function of the parameter space point $\vec{p}$ under consideration or the fluctuated toy dataset $N_k$ or in the case of the $\chi^2(N_k, \vec{q}_{best})$, every point in parameter space $\vec{q}$ tested in searching for $\vec{q}_{best}$.  
 
-Next, a /critical/ $\Delta \chi_c^2(\vec{p})$ is calculated such that it is greater than exactly $\alpha$ (/eg/ 90%) of the entries in the set $\{\Delta \chi^2(N_k, \vec{p})\}$ and also a
-\[ \Delta \chi^2_{meas}(\vec{p}) = \chi^2(N_{meas}, \vec{p}) - \chi^2(N_{meas}, \vec{q}_{best})\]
-is calculated.  Again, $\vec{q}_{best}$ is found by maximizing the likeloihood as above.   Finally, the set of points $\{\vec{p}\}$ spanning the CR is defined by:
-\[ \{\ \vec{p}\ |\ \Delta \chi^2_{meas}(\vec{p}) < \Delta \chi^2_c(\vec{p})\ \} \]
+Next, a /critical/ $\Delta \chi_c^2(\vec{p})$ is calculated such that it is greater than exactly $\alpha$ (/eg/ 90%) of the entries in the set $\{\Delta \chi_k^2(\vec{p})\}$ and also a $\Delta \chi^2$ for the measurement is calculated as in equation [[eqn:chim]].
+#+name: eqn:chim
+\begin{equation}
+\Delta \chi^2_{meas}(\vec{p}) = \chi^2(N_{meas}, \vec{p}) - \chi^2(N_{meas}, \vec{q}_{best})
+\end{equation}
+Again, $\vec{q}_{best}$ is found by maximizing the likelihood as was done above with the $\Delta \chi_k^2(\vec{p})$.   Finally, the set of points $\{\vec{p}\}$ spanning the CR is defined as in equation [[eqn:cr]].
+
+#+name: eqn:cr
+\begin{equation}
+\{\ \vec{p}\ |\ \Delta \chi^2_{meas}(\vec{p}) < \Delta \chi^2_c(\vec{p})\ \}
+\end{equation}
 
 
+* Algorithms
+
+
+#+begin_algorithm
+#+caption: Predict a measurement.  If $fluctuate$ is TRUE the measurement includes statistical fluctuations, else it is a central expected value.  This function is application specific.
+#+begin_algorithmic
+\Function{Predict}{$\vec q,fluctuate$}
+\State $N$ \gets ...
+\State \Return $N$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
+
+
+#+begin_algorithm
+#+caption: Return the point in parameter space which is most likely to produce the measurement $N$.  This function is application specific but should maximize the likelihood $\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q})\ )$
+#+begin_algorithmic
+\Function{MostLikely}{$N$}
+\State $\vec{q}_{best}$ \gets \Call{maximize}{$\probp(N|\vec q),\vec q \in \pspace$}
+\State \Return $\vec{q}_{best}$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
+
+
+#+begin_algorithm
+#+caption: Return the covariance matrix for the the measurement $N$ and the prediction at parameter point $\vec{q}$.  This function is application specific.
+#+begin_algorithmic
+\Function{Covariance}{$N, \vec q$}
+\State $\npred$ \gets \Call{Predict}{$\vec q$, FALSE}
+\State $\Sigma$ \gets ...
+\State \Return $\Sigma$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
+
+
+#+begin_algorithm
+#+caption: A $\chi^2$ function between a measurement $N$ and a prediction at the parameter point $\vec{q}$.  This function is application specific with the form below one obvious choice.  
+#+begin_algorithmic
+\Function{Chi2}{$N, \vec q$}
+\State $\Sigma$ \gets \Call{Covariance}{$N, \vec q$}
+\State $\chi^2$ \gets $(N - N')^\intercal \cdot \Sigma^-1 \cdot (N-N')$
+\State \Return $\chi^2$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
+
+
+#+begin_algorithm
+#+caption: The $\Delta \chi^2$ function giving the difference in the $\chi_{null}^2$ between the measurement $N$ and prediction at $\vec{p}$ and the $\chi^2_{best}$ between the measurement and the parameter $\vec{q}_{best}$ most likely to have produced the measurement $N$.
+#+begin_algorithmic
+\Function{DeltaChi2}{$N, \vec p$}
+\State $\chi_{null}^2$ \gets \Call{Chi2}{$N, \vec p$}
+\State $\qbest$ \gets \Call{MostLikely}{$N$}
+\State $\chi_{best}^2$ \gets \Call{Chi2}{$N, \qbest$}
+\State $\Delta \chi^2$ \gets $\chi_{null}^2 - \chi_{best}^2$
+\State \Return $\Delta \chi^2$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
+
+
+#+begin_algorithm
+#+caption: The /critical/ $\Delta \chi_c^2$ which is above the $\Delta \chi^2_k$ from exactly $\alpha$ of the $\ntoys$ of toy Monte Carlo results for the model at parameter point $\vec{p}$.
+#+begin_algorithmic
+\Function{CriticalDeltaChi2}{$\vec p, \ntoys, \alpha$}
+\State $array$ \gets $[]$
+\ForAll{$k \in [1, \dots, \ntoys]$}
+\State $N_k$ \gets \Call{Predict}{$\vec p,$ TRUE}
+\State $\Delta \chi_k^2$ \gets \Call{DeltaChi2}{$N_k, \vec p$}
+\State $array[k]$ \gets $\Delta \chi_k^2$
+\EndFor
+\State \Call{sort}{$array$}
+\State $index$ \gets \Call{round}{$\alpha \times \ntoys$}
+\State $\Delta \chi_c^2$ \gets $array[index]$
+\State \Return $\Delta \chi_c^2$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
+
+
+#+begin_algorithm
+#+caption: The subset of the parameter space containing the true parameter point consistent with the measurement $\nmeas$ at a confidence level $\alpha$ using $\ntoys$ Monte Carlo results for each test point in the parameter space.
+#+begin_algorithmic
+\Function{ConfidenceRegion}{$\nmeas, \alpha, \ntoys$}
+\State $array$ \gets $[]$
+\ForAll{$\vec p \in \pspace$}
+\State $\Delta \chi_c^2$ \gets \Call{CriticalDeltaChi2}{$\vec p, \ntoys, \alpha$}
+\State $\Delta \chi^2$ \gets \Call{DeltaChi2}{$\nmeas, \vec p$}
+\If{$\Delta \chi^2 < \Delta \chi^2_c$}
+\State \Call{append}{$array, \vec p$}
+\EndIf
+\EndFor
+\State \Return $array$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
