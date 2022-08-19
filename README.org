@@ -1,0 +1,15 @@
+#+title: unicic - Unified Aproach to Confidence Interval Construction
+
+* Intro
+
+The ~unicic~ module implements the [[https://arxiv.org/abs/physics/9711021][Feldman-Cousins "unified" confidence interval construction]].  Such calculations can be lengthy, particularly when the confidence interval is a function of more than one parameter.  Past work attacks this computing challenge by examining [[https://www.epj-conferences.org/articles/epjconf/abs/2021/05/epjconf_chep2021_02065/epjconf_chep2021_02065.html][how to scale the grid search to HPC]] or how to [[https://arxiv.org/abs/1811.07050][efficiently span the parameter space with Gaussian processes]].  This work attempts a third orthogonal approach of accelerating with GPU.  In principle any two or all three may be combined.
+
+The calculation is summarized [[docs/unicic.org][here]].  See the original F-C paper for
+motivations and details.  
+
+
+https://arxiv.org/abs/1903.07185
+
+* Usage
+
+
