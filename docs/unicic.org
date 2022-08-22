@@ -154,6 +154,7 @@ The remaining algorithms are more fully formed though some may still allow appli
 #+caption: A $\chi^2$ function between a measurement $N$ and a prediction at the parameter point $\vec{q}$.  This function is application specific with the form below one obvious choice.  
 #+begin_algorithmic
 \Function{Chi2}{$N, \vec q$}
+\State $N'$ \gets \Call{Predict}{$\vec q$}
 \State $\Sigma$ \gets \Call{Covariance}{$N, \vec q$}
 \State $\Sigma^{-1}$ \gets \Call{invert}{$\Sigma$}
 \State $\chi^2$ \gets $(N - N')^\intercal \cdot (\Sigma^{-1}) \cdot (N-N')$

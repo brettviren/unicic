@@ -2,3 +2,8 @@ latexmk-out
 ltximg
 *~
 *.tex
+.ipynb_checkpoints
+__pycache__
+.direnv
+.envrc
+Untitled.*
