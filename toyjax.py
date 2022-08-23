@@ -13,23 +13,27 @@ Notation:
 
 '''
 import jax.config
-jax.config.update('jax_platform_name', 'cpu')
 
+import sys
+if "cpu" in sys.argv:           # must do this early?
+    jax.config.update('jax_platform_name', "cpu")
+# also set XLA_FLAGS='--xla_force_host_platform_device_count=40
 
 import jax.numpy as jnp
+import numpy as np
 from jax import random, pmap, vmap, jit, value_and_grad
 from functools import partial, cache, cached_property
 
 # Default measurement space
-default_ms = jnp.linspace(0,10,100,False)
+default_ms = np.linspace(0,10,100,False)
 
 npbins = 25
 
 # Default parameter space
 default_ps = (
-    jnp.linspace(0.1, 10, npbins, False), # mu
-    jnp.linspace(0.1, 10, npbins, False), # sig
-    jnp.linspace(10, 110, npbins, False)  # mag
+    np.linspace(0.1, 10, npbins, False), # mu
+    np.linspace(0.1, 10, npbins, False), # sig
+    np.linspace(10, 110, npbins, False)  # mag
 )
 
 class SGD:
@@ -42,8 +46,8 @@ class Toy:
     def __init__(self, key = random.PRNGKey(42), ms = default_ms, pses = default_ps):
         ''' Create toy calculation with random key, measurement
         linspace ms and parameter linspaces *ps '''
-        self.ms = ms
-        self.ps = pses
+        self.ms = jnp.array(ms)
+        self.ps = jnp.array(pses)
         self.key = key
 
     @cached_property
@@ -122,17 +126,17 @@ class Toy:
         '''
         Return the chi2 value for the measurement and a prediction at q.
         '''
+        print(f'chi2: q:{q.shape} N:{N.shape}')
         npred = self.predict(q)
         c = self.covariance(N,q)
-        cinv = jnp.linalg.inv(c)
-        dN = jnp.expand_dims(N - npred, axis=1)
-        dNT = jnp.transpose(dN)
-        ret = (dNT @ cinv @ dN).squeeze()
+        try:
+            cinv = jnp.linalg.inv(c)
+            dN = jnp.expand_dims(N - npred, axis=1)
+            dNT = jnp.transpose(dN)
+            return (dNT @ cinv @ dN).squeeze()
+        except RuntimeError:
+            return jnp.nan
 
-        # Note, inv() or the matrix-multiply can lead to NaN.  FPE is
-        # raised when jax.config.update("jax_debug_nans", True).
-        # Caller should check.
-        return ret
 
     def most_likely_gs(self, N, chunk_size=1000):
         '''Return best fit parameter through grid search.
@@ -238,11 +242,10 @@ class Toy:
 
 import optax
 
-def test_some_things():
+def test_some_things(dev='cpu', chunk_size = 1000):
     # jax.config.update('jax_platform_name', 'cpu')
     # jax.config.update("jax_debug_nans", debug)
     # jax.config.update('jax_disable_jit', debug)
-    print(jax.devices())
 
     t = Toy()
     q = t.qrand
@@ -266,14 +269,40 @@ def test_some_things():
     # losses, qpionts, qbest, opt_state = most_likely(N, q, opt_fn=adam.update,
     #                                                 opt_state=adam.init(q))
 
-    chunk_size = 1000
-    qbest, chi2best, chi2s = t.most_likely_gs(N, chunk_size)
+    def my_func():
+        qbest, chi2best, chi2s = t.most_likely_gs(N, chunk_size)
+        print(f'q=\n{q}\nqbest=\n{qbest}\ndiff=\n{q-qbest}\nchi2best={chi2best}')
 
-    print(f'q=\n{q}\nqbest=\n{qbest}\ndiff=\n{q-qbest}\nchi2best={chi2best}')
+    import time
+    start = time.perf_counter()
+    my_func()
+    stop = time.perf_counter()
+    dt = stop-start
+    print(f'elapsed={dt:.3f} s rate={len(t.ps_flat)/dt:.3f} Hz')
     return locals()
 
 if "__main__" == __name__:
-    test_some_things()
+    import os
+    import sys
+    dev = 'gpu'
+    chunk_size = 1000
+    for arg in sys.argv[1:]:
+        if arg.startswith("cpu"):
+            dev = "cpu"
+            continue
+        if arg.startswith("gpu"):
+            dev = 'gpu'
+            continue
+
+        try:
+            chunk_size = int(arg)
+        except ValueError:
+            continue
+            
+    print(dev,chunk_size)
+    print(jax.devices())
+    test_some_things(dev, chunk_size)
+
 
 # eg:
 # python toy.py
