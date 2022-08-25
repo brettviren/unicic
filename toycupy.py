@@ -285,7 +285,6 @@ class Toy:
 
 ###
 
-import optax
 
 def check_qs(t, num):
 

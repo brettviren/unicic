@@ -240,7 +240,6 @@ class Toy:
 
 ###
 
-import optax
 
 def test_some_things(dev='cpu', chunk_size = 1000):
     # jax.config.update('jax_platform_name', 'cpu')
