@@ -165,34 +165,37 @@ class Toy:
         npoints = int(qs.shape[0])
         nperdev = npoints // ndevs
         nchunks = nperdev // chunk_size
-        if nchunks == 0:
-            err = f'failed to find solution for parallel distribution: chunk size {chunk_size} is too large or ndevs {ndevs} is too large for {npoints} points'
-            print(err)
-            raise ValueError(err)
-        npar = ndevs * nchunks * chunk_size
-        print(f'ndevs={ndevs} nperdev={nperdev} nchunks={nchunks} npar={npar} npoints={npoints}')
+        if nchunks > 0:
+            print ('using pmap()')
 
-        qspar = qs[:npar,:].reshape(ndevs, nchunks, chunk_size, -1)
-        print(f'qspar:{qspar.shape}')
+            npar = ndevs * nchunks * chunk_size
+            print(f'ndevs={ndevs} nperdev={nperdev} nchunks={nchunks} npar={npar} npoints={npoints}')
 
-        def bydev(qschunks):
-            print(f'qschunks:{qschunks.shape}')
-            many = list()
-            for qschunk in qschunks:
-                one = Nchi2(qschunk)
-                print(f'qschunk:{qschunk.shape}, one:{one.shape}')
-                many.append(one)
-            ret = jnp.hstack(many)
-            print(f'bydev:{ret.shape}')
-            return ret
-        bydev = pmap(bydev)
-        print('calling bydev')
-        parts = bydev(qspar)
-        parts = parts.reshape(-1)
-        print(f'parts:{parts.shape}')
+            qspar = qs[:npar,:].reshape(ndevs, nchunks, chunk_size, -1)
+            print(f'qspar:{qspar.shape}')
+
+            def bydev(qschunks):
+                print(f'qschunks:{qschunks.shape}')
+                many = list()
+                for qschunk in qschunks:
+                    one = Nchi2(qschunk)
+                    print(f'qschunk:{qschunk.shape}, one:{one.shape}')
+                    many.append(one)
+                ret = jnp.hstack(many)
+                print(f'bydev:{ret.shape}')
+                return ret
+            bydev = pmap(bydev)
+            print('calling bydev')
+            parts = bydev(qspar)
+            parts = parts.reshape(-1)
+            print(f'parts:{parts.shape}')
+
+            leftovers = Nchi2(qs[npar:,:])
+            chi2s = jnp.hstack((parts, leftovers))
+        else:
+            print ('single shot')
+            chi2s = Nchi2(qs)
         
-        leftovers = Nchi2(qs[npar:,:])
-        chi2s = jnp.hstack((parts, leftovers))
         print(f'chi2s:{chi2s.shape}')
         
         nans = jnp.isnan(chi2s)
