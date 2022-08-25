@@ -1,0 +1,62 @@
+* Measurements
+
+** Setup
+
+For jax to use multiple CPU devices run like:
+
+#+begin_example
+XLA_FLAGS='--xla_force_host_platform_device_count=40 ./jaxtoy cpu
+#+end_example
+
+cupy on CPU (actually numpy) will use all CPUs by default when the
+underlying algorithm is parallel and/or batched.
+
+** systems
+
+| host      | sockets | cores | HTs | cpu model    | RAM (GB) | gpu model   | RAM (GB) | avail (GB) |
+|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------|
+| hierocles |       2 |    20 |  40 | Xeon E5-2630 |       64 | GTX 1060    |        3 |        2.0 |
+| kratos    |       1 |     8 |  16 | i9-9900K     |       32 | RTX 2080 Ti |       11 |         11 |
+|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------|
+| haiku     |       1 |     4 |   8 | i7-4770K     |       32 | GTX 750 Ti  |        2 |     1.4 GB |
+| hokum     |       1 |     6 |  12 | i7-9750H     |       64 | GTX 1650    |        4 |          4 |
+|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------|
+
+
+** Serialized stats-only covariance inversion
+
+This uses a stats-only (diagonal) covariance matrix.  It is inverted with ~*.linalg.inv()~ and not in batched mode.
+
+On hierocles 
+
+-  600 Hz with CuPy on GPU
+- 1000 Hz with Numpy and 40 CPU
+- 1700 Hz with Jax   and 40 CPU
+- failed with Jax on GPU - the 800 MB available RAM not enough
+
+On kratos
+
+- 27 Hz with Jax and 10 CPUs - why so slow???
+- 1450 Hz with cupy and CPU
+- 1000 Hz with cupy on GPU, 600MB
+  
+On haiku
+
+- 2065 Hz with cupy and CPU
+- 542 Hz with cupy and GPU
+
+** Batched covariance inversion
+
+Turns out ~*.linalg.inv()~ accepts batched first index.
+
+But, implementing on hierocles leaves cupy speed unchanged for both
+CPU and GPU.  Maybe it's not really batched.
+
+On haiku
+
+- 2150 HZ with cupy/CPU
+- 360 Hz with cupy/GPU @ 99% 110 MB
+- 660 Hz with jax/CPU
+- 1200 Hz with jax/CPU with 8 cpus  
+  
+

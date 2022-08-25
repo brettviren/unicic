@@ -28,9 +28,9 @@ npbins = 25
 
 # Default parameter space
 default_ps = (
-    np.linspace(0.1, 10, npbins, False), # mu
-    np.linspace(0.1, 10, npbins, False), # sig
-    np.linspace(10, 110, npbins, False)  # mag
+    np.linspace(1., 10, npbins, False), # mu
+    np.linspace(1., 10, npbins, False), # sig
+    np.linspace(10., 110, npbins, False)  # mag
 )
 
 class SGD:
@@ -46,6 +46,9 @@ class Toy:
         self.ms = xp.array(ms)
         self.ps = tuple([xp.array(ps) for ps in pses])
         self.xp = xp
+        # make and reuse to save a few %
+        self.I = self.xp.eye(ms.size)
+        
 
     #@cached_property
     @property
@@ -127,7 +130,7 @@ class Toy:
         # diag = self.xp.where(diag > 0, diag, 0.5*Npred)
         # see appendix a of CNP paper for the 1/2.
 
-        I = self.xp.eye(N.size)
+        I = self.I
         if len(q.shape) > 1:    # batched
             I = self.xp.expand_dims(I, axis=0) # add batch
             diag = self.xp.expand_dims(diag, axis=1) 
@@ -157,28 +160,23 @@ class Toy:
         q may be batched.
 
         '''
-        squeeze = False
         if len(q.shape) == 1:    # not batched
             q = self.xp.expand_dims(q, axis=0)
-            squeeze = True
 
         npreds = self.predict(q)  # (n, nbins)
         cs = self.covariance(N,q) # (n, nbins, nbins)
-        ret = list()
-        for c,npred in zip(cs,npreds):
-            try:
-                cinv = self.xp.linalg.inv(c)
-                dN = self.xp.expand_dims(N - npred, axis=1)
-                dNT = self.xp.transpose(dN)
-                ret.append((dNT @ cinv @ dN).squeeze())
-            except CUSOLVERError:
-                ret.append(self.xp.nan)
-            except LinAlgError:
-                ret.append(self.xp.nan)
-        ret = self.xp.array(ret)
-        if squeeze:
-            ret = ret.squeeze()
+
+        try:
+            cinv = self.xp.linalg.inv(cs) # (n, nbins, nbins)
+        except LinAlgError:
+            for c in cs:
+                print(self.xp.diag(c))
+            raise
+        dN = self.xp.expand_dims(N - npreds, axis=2)
+        dNT = self.xp.transpose(dN, axes=(0,2,1))
+        ret = (dNT @ cinv @ dN).squeeze()
         return ret
+
 
     def most_likely_gs(self, N, chunk_size=1000):
         '''Return best fit parameter through grid search.
@@ -291,7 +289,6 @@ class Toy:
 
 ###
 
-# import optax
 
 def check_qs(t, num):
 
