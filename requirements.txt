@@ -7,3 +7,5 @@ ipython
 matplotlib
 uproot
 gprof2dot
+awkward
+pytest

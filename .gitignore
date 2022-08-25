@@ -9,3 +9,7 @@ __pycache__
 Untitled.*
 *.pdf
 *.prof
+.eggs
+data
+auto
+*.egg-info

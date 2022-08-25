@@ -2,25 +2,97 @@
 
 ** Setup
 
+*** General
+
+#+begin_example
+git clone git@github.com:brettviren/unicic.git
+cd unicic
+echo layout python3 > .envrc
+direnv allow
+pip install -U pip setuptools
+pip install -r requirements.txt
+#+end_example
+
+Next, cupy and jax with GPU support.  One must be careful of CUDA
+versions.  Here are examples of installing cupy and jax with specific
+versions on a Debian system with CUDA 11.
+
+#+begin_example
+pip install -U cupy-cuda11x
+pip install -U "jax[cuda11_cudnn805]" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+#+end_example
+
+or maybe
+
+#+begin_example
+CUDA_HOME=/usr/local/cuda-11.2 \
+  pip install -U 'jaxlib[cuda112]' -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+#+end_example
+
+*** Jax
+
+**** Multiple CPU
+
 For jax to use multiple CPU devices run like:
 
 #+begin_example
-XLA_FLAGS='--xla_force_host_platform_device_count=40 ./jaxtoy cpu
+XLA_FLAGS='--xla_force_host_platform_device_count=40 ./toyjax cpu
 #+end_example
+
+**** CUDA versions
+
+Jax seems extra sensitive to CUDA version problems.  Make
+
+#+begin_example
+❯ nvidia-smi|grep 'CUDA Version'
+| NVIDIA-SMI 470.129.06   Driver Version: 470.129.06   CUDA Version: 11.4     |
+❯ nvcc -V |grep Build
+Build cuda_11.2.r11.2/compiler.29618528_0
+#+end_example
+
+This combination may lead to error like:
+
+#+begin_example
+no kernel image is available for execution on the device
+#+end_example
+
+*** cupy
 
 cupy on CPU (actually numpy) will use all CPUs by default when the
 underlying algorithm is parallel and/or batched.
 
+
+*** Profiling
+
+The ~./toyXXX.py~ tests will spit out timing info for the full test.  To
+see where time is spent run, eg
+
+#+begin_example
+❯ python -m cProfile -o toyjax.prof ./toyjax.py gpu 20000
+❯ gprof2dot -f pstats toyjax.prof | dot -Tpdf -o toyjax.pdf
+#+end_example
+
+Jax profile graph is a bit busy compared to cupy/numpy due to the
+tracing and compiling it does.
+
 ** systems
 
-| host      | sockets | cores | HTs | cpu model    | RAM (GB) | gpu model   | RAM (GB) | avail (GB) |
-|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------|
-| hierocles |       2 |    20 |  40 | Xeon E5-2630 |       64 | GTX 1060    |        3 |        2.0 |
-| kratos    |       1 |     8 |  16 | i9-9900K     |       32 | RTX 2080 Ti |       11 |         11 |
-|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------|
-| haiku     |       1 |     4 |   8 | i7-4770K     |       32 | GTX 750 Ti  |        2 |     1.4 GB |
-| hokum     |       1 |     6 |  12 | i7-9750H     |       64 | GTX 1650    |        4 |          4 |
-|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------|
+|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------+---------------------|
+| host      | sockets | cores | HTs | cpu model    | RAM (GB) | gpu model   | RAM (GB) | avail (GB) | max g/s/m/v         |
+|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------+---------------------|
+| hierocles |       2 |    20 |  40 | Xeon E5-2630 |       64 | GTX 1060    |        3 |        2.0 | 1974/1974/4004/1708 |
+| kratos    |       1 |     8 |  16 | i9-9900K     |       32 | RTX 2080 Ti |       11 |         11 | 2100/2100/7000/1950 |
+|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------+---------------------|
+| haiku     |       1 |     4 |   8 | i7-4770K     |       32 | GTX 750 Ti  |        2 |     1.4 GB | 1450/1450/2700/1305 |
+| hokum     |       1 |     6 |  12 | i7-9750H     |       64 | GTX 1650    |        4 |          4 | 2100/2100/3500/1950 |
+|-----------+---------+-------+-----+--------------+----------+-------------+----------+------------+---------------------|
+
+#+begin_example
+lscpu
+free
+nvidia-smi
+nvidia-smi -q -d CLOCK
+#+end_example
 
 
 ** Serialized stats-only covariance inversion
@@ -59,4 +131,16 @@ On haiku
 - 660 Hz with jax/CPU
 - 1200 Hz with jax/CPU with 8 cpus  
   
+On hokum
 
+- 1900 Hz with cupy/CPU
+- 580 Hz with cupy/GPU @ 100% 300 MB
+- 2000 Hz with jax/CPU with 12 cpus
+- 4000 Hz with jax/GPU @ 43% 4 GB
+- 7400 Hz with jax/GPU and batchsize 10000 
+- 8700 Hz with jax/GPU and one-shot
+
+On kratos
+
+- 3900 Hz with jax/GPU @25% 10GB
+- 7500 Hz with jax/GPU @25% 10GB one-shot
