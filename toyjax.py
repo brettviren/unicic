@@ -22,7 +22,10 @@ if "cpu" in sys.argv:           # must do this early?
 import jax.numpy as jnp
 import numpy as np
 from jax import random, pmap, vmap, jit, value_and_grad
-from functools import partial, cache, cached_property
+from functools import partial
+## older py3 lacks
+#from functools import cache, cached_property
+from functools import lru_cache
 
 # Default measurement space
 default_ms = np.linspace(0,10,100,False)
@@ -50,12 +53,16 @@ class Toy:
         self.ps = jnp.array(pses)
         self.key = key
 
-    @cached_property
+    #@cached_property
+    @property
+    @lru_cache()
     def ps_mesh(self):
         'A meshgrid spanning parameter space'
         return jnp.meshgrid(*self.ps)
 
-    @cached_property
+    #@cached_property
+    @property
+    @lru_cache()
     def ps_flat(self):
         'Parameter space points shaped (Npoints, Ndims)'
         return jnp.stack([one.reshape(-1) for one in self.ps_mesh]).T
@@ -119,7 +126,8 @@ class Toy:
         '''
         npred = self.predict(q)
         self.key, sub = random.split(self.key)
-        nfluc = random.poisson(sub, npred)
+        print(f'fluctuate: npred:{npred.shape}')
+        nfluc = random.poisson(sub, npred, npred.shape)
         return nfluc
 
     def chi2(self, N, q):
@@ -240,7 +248,7 @@ class Toy:
 
 ###
 
-import optax
+# import optax
 
 def test_some_things(dev='cpu', chunk_size = 1000):
     # jax.config.update('jax_platform_name', 'cpu')

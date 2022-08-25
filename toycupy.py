@@ -19,7 +19,7 @@ import numpy as np
 from cupy_backends.cuda.libs.cusolver import CUSOLVERError
 from numpy.linalg import LinAlgError
 
-from functools import partial, cache, cached_property
+from functools import partial, lru_cache # , cache, cached_property
 
 # Default measurement space
 default_ms = np.linspace(0,10,100,False)
@@ -47,12 +47,16 @@ class Toy:
         self.ps = tuple([xp.array(ps) for ps in pses])
         self.xp = xp
 
-    @cached_property
+    #@cached_property
+    @property
+    @lru_cache()
     def ps_mesh(self):
         'A meshgrid spanning parameter space'
         return self.xp.meshgrid(*self.ps)
 
-    @cached_property
+    #@cached_property
+    @property
+    @lru_cache()
     def ps_flat(self):
         'Parameter space points shaped (Npoints, Ndims)'
         return self.xp.stack([one.reshape(-1) for one in self.ps_mesh]).T
@@ -287,7 +291,7 @@ class Toy:
 
 ###
 
-import optax
+# import optax
 
 def check_qs(t, num):
 
