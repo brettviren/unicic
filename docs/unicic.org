@@ -1,4 +1,4 @@
-#+title: Applying Feldman-Cousins Unified Approach 
+#+title: Applying Feldman-Cousins Unified Approach to Multivariate Neutrino Oscillation Model
 #+LATEX_HEADER: \usepackage[margin=0.95in]{geometry}
 #+latex_header: \usepackage{algorithm}
 #+latex_header: \usepackage{algpseudocode}
@@ -61,10 +61,13 @@ Again, $\vec{q}_{best}$ is found by maximizing the likelihood as was done above 
 
 * Algorithms
 
-This section provides a summary of the multivariate F-C/UA expressed in terms of algorithm pseudocode.  A portion of an algorithm which must be provided by a specific application are elided.  Where stated, some algorithms implement one choice among a set of valid options.  Algorithms which are fundamental and understood from context may be called without explicitly being defined.
+This section provides a summary of the multivariate F-C/UA expressed in terms of functional algorithm pseudocode.  A portion of a function which must be provided by a specific application are elided.  Where stated, some functions implement a particular choice among a set of valid options.  Simple function with purposes understood from context may be called without explicitly being defined.
+
+The first function \textsc{Predict}[[alg:predict]] represents the parameterized model of the observed data.  It must transform an arbitrary point $\vec q$ in parameter space into a point in measurement space.  The output is the expectation value of the measurement given the parameter point and does not represent any random fluctuations.
 
 #+begin_algorithm
 #+caption: The central, expectation value of measurements made from a model given a point $\vec{q}$ in its parameter space.  This function is application specific.
+#+name: alg:predict
 #+begin_algorithmic
 \Function{Predict}{$\vec q$}
 \State $N$ \gets $\dots$ \Comment{Application specific model implementation}
@@ -73,9 +76,11 @@ This section provides a summary of the multivariate F-C/UA expressed in terms of
 #+end_algorithmic
 #+end_algorithm
 
+In \textsc{MostLikely}[[alg:mostlikely]], given an expectation value $N_{pred}$ or a measurement (be it a fluctuation of the expectation $N_k$ or measured data $N_{meas}$, there is one point in the parameter space $\vec{q}_{best}$ which is most likely to produce the measurement.  This point is found by maximizing that likelihood or, in the case shown below, minimizing a corresponding $\chi^2$.  The minimization strategy is typically chosen to be a grid search over the full parameter space.  This may be augmented or replaced by more sophisticated optimization strategies.  The accuracy and precision in finding $\vec{q}_{best} \leftrightarrow \chi^2_{min}$ will reflect into the correctness of the final confidence regions.  This function is called frequently and its performance optimization is critical.
 
 #+begin_algorithm
 #+caption: The point in parameter space which is most likely to produce the measurement $N$.  This function is application specific but should maximize the likelihood $\mathcal{P}(\ N_k\ |\ N_{pred}(\vec{q})\ )$.
+#+name: alg:mostlikely
 #+begin_algorithmic
 \Function{MostLikely}{$N$}
 \State $\vec{q}_{best}$ \gets \Call{Maximize}{$\probp(N|\vec q),\vec q \in \pspace$}
@@ -84,16 +89,17 @@ This section provides a summary of the multivariate F-C/UA expressed in terms of
 #+end_algorithmic
 #+end_algorithm
 
-
+The $\chi^2$ is constructed from a covariance matrix in [[alg:chi2]].  The construction is in the form of a systematic and a statistical term.  The systematic term is defined in \textsc{SystVariance}[[alg:systvariance]] and is composed from a fractional systematic matrix which is independent from the parameterized model and which is multiplied to an expected measurement.
 
 
 #+begin_algorithm
 #+caption: Return the systematic portion of the covariance matrix for the the measurement $N$ and the prediction at parameter point $\vec{q}$.  This function is application specific.  Shown is one particular decomposition in terms of a fractional or relative covariance matrix $\sigmafrac$ that is independent from the paramater space point.
+#+name: alg:systvariance
 #+begin_algorithmic
 \Function{SystVariance}{$\vec q$}
 \State $\sigmafrac$ \gets $\dots$ \Comment{Application-specific fractional systematic covariance matrix}
-\State $V$ \gets \Call{Predict}{$\vec q$}
-\State $W$ \gets $VV^\intercal$
+\State $N_{pred}$ \gets \Call{Predict}{$\vec q$}
+\State $W$ \gets $N_{pred} \cdot N_{pred}^\intercal$
 \State $\sigmasyst$ \gets $\sigmafrac \circ W$ \Comment{Hadamard aka element-wise product}
 \State \Return $\sigmasyst$
 \EndFunction
@@ -101,11 +107,12 @@ This section provides a summary of the multivariate F-C/UA expressed in terms of
 #+end_algorithm
 
 
-The remaining algorithms are more fully formed though some may still allow application-specific modifications.
-
+The remaining algorithms are presented in more fully defined forms though some may still allow application-specific modifications.  The statistical term in the covariance is constructed in \textsc{StatVariance}[[alg:statvariance]].  The form of this covariance matrix term is follows what is described in the [[https://arxiv.org/abs/1903.07185][combined Nyeman-Pearson Chi-square]] construction.
+Finally, the full covariance matrix itself is simply the sum of the statistical and systematic terms and its construction is shown in \textsc{Covariance}[[alg:covariance]].
 
 #+begin_algorithm
 #+caption: Return the statistical portion of the covariance matrix for the the measurement $N$ and the prediction at parameter point $\vec{q}$.  This function is application specific.  Shown is the choice suggested by [[https://arxiv.org/abs/1903.07185][Combined Neyman-Pearson Chi-square]].
+#+name: alg:statvariance
 #+begin_algorithmic
 \Function{StatVariance}{$N, \vec q$}
 \State $\npred$ \gets \Call{Predict}{$\vec q$}
@@ -118,9 +125,9 @@ The remaining algorithms are more fully formed though some may still allow appli
 #+end_algorithmic
 #+end_algorithm
 
-
 #+begin_algorithm
 #+caption: Return the covariance matrix for the the measurement $N$ and the prediction at parameter point $\vec{q}$.  This function is application specific.  Shown is simply the linear sum of statistical and systematic parts.
+#+name: alg:covariance
 #+begin_algorithmic
 \Function{Covariance}{$N, \vec q$}
 \State $\sigmastat$ \gets \Call{StatVariance}{$N,\vec q$}
@@ -132,10 +139,11 @@ The remaining algorithms are more fully formed though some may still allow appli
 #+end_algorithm
 
 
-
+In order to finally construct the confidence region over a parameter space of multiple dimensions we must resort to Monte Carlo integration to determine the $\chi^2$ distribution at any given point in that parameter space.  Each call to \textsc{Fluctate}[[alg:fluctuate]] produces a single measurement from a "toy" experiment.  The "toy" measurement is produced from statistically and systematically fluctuating the expectation value at a given point in parameter space.  The systematic uncertainty encoded by \textsc{SystVariance}[[alg:systvariance]] matrix is fluctuated assuming its eigenvalues are Gaussian distributed and this result is added to the expectation value of the measure at that point in parameter space.   The sum is then fluctuated by interpreting each element of this systematically biased expectation as a Poisson mean.
 
 #+begin_algorithm
 #+caption: The statistically and systematically fluctuated measure expected from a model at point $\vec{q}$ in its parameter space.  This function is application specific and what is given is an example.
+#+name: alg:fluctuate
 #+begin_algorithmic
 \Function{Fluctuate}{$\vec q$}
 \State $\sigmasyst$ \gets \Call{SystVariance}{$\vec q$}
@@ -149,9 +157,11 @@ The remaining algorithms are more fully formed though some may still allow appli
 #+end_algorithmic
 #+end_algorithm
 
+The \textsc{Chi2}[[alg:chi2]] function produces a scalar value that scores how consistent a measure $N$ is with a point in parameter space $\vec{q}$, specifically with the expectation value $N_{pred}$ at $\vec{q}$.  It takes the usual form of vector differences between the two measures which are contracted on the inverse of the covariance matrix.  The \textsc{Chi2} function is at the center of many iterations and thus optimizing is performance, and particularly that of the matrix inversion, is very important for an overall fast calculation.
 
 #+begin_algorithm
 #+caption: A $\chi^2$ function between a measurement $N$ and a prediction at the parameter point $\vec{q}$.  This function is application specific with the form below one obvious choice.  
+#+name: alg:chi2
 #+begin_algorithmic
 \Function{Chi2}{$N, \vec q$}
 \State $N'$ \gets \Call{Predict}{$\vec q$}
@@ -163,32 +173,49 @@ The remaining algorithms are more fully formed though some may still allow appli
 #+end_algorithmic
 #+end_algorithm
 
+The \textsc{DeltaChi2}[[alg:deltachi2]] function provides a $\Delta \chi^2$ value comparing two $\chi^2$ values as a function of a measure $N$ and a point in parameter space $\vec{p}$.  The first, $\chi^2_{null}$, is between the measure and the predicted expectation of the measure $N_{pred}$ at $\vec p$.  The second, $\chi^2_{min}$, is between the measure and the predicted expectation of the measure at $\vec{q}_{best}$ as found by [[alg:mostlikely]].
 
 #+begin_algorithm
-#+caption: The $\Delta \chi^2$ function giving the difference in the $\chi_{null}^2$ between the measurement $N$ and prediction at $\vec{p}$ and the $\chi^2_{best}$ between the measurement and the parameter $\vec{q}_{best}$ which is most likely to have produced the measurement $N$.
+#+caption: The $\Delta \chi^2$ function giving the difference in the $\chi_{null}^2$ between the measurement $N$ and prediction at $\vec{p}$ and the $\chi^2_{min}$ between the measurement and the parameter $\vec{q}_{best}$ which is most likely to have produced the measurement $N$.
+#+name: alg:deltachi2
 #+begin_algorithmic
 \Function{DeltaChi2}{$N, \vec p$}
 \State $\chi_{null}^2$ \gets \Call{Chi2}{$N, \vec p$}
 \State $\qbest$ \gets \Call{MostLikely}{$N$}
-\State $\chi_{best}^2$ \gets \Call{Chi2}{$N, \qbest$}
-\State $\Delta \chi^2$ \gets $\chi_{null}^2 - \chi_{best}^2$
+\State $\chi_{min}^2$ \gets \Call{Chi2}{$N, \qbest$}
+\State $\Delta \chi^2$ \gets $\chi_{null}^2 - \chi_{min}^2$
 \State \Return $\Delta \chi^2$
 \EndFunction
 #+end_algorithmic
 #+end_algorithm
 
+The \textsc{SampleDeltaChi2}[[alg:sampledeltachi2]] function applies the Monte Carlo integration method to estimate the $\Delta \chi^2$ distribution at a given point in parameter space $\vec p$.  The MC will calculate over $n_{toys}$ of "toy" experiments with the function in [[alg:fluctuate]].  
 
 #+begin_algorithm
-#+caption: The /critical/ $\Delta \chi_c^2$ which is above the $\Delta \chi^2_k$ values from exactly $\alpha$ of the $\ntoys$ of toy Monte Carlo results for the model at parameter point $\vec{p}$.
+#+caption: A sampling of the $\Delta \chi^2$ distribution at a point $\vec p$ in parameter space over $\ntoys$ samples.
+#+name: alg:sampledeltachi2
 #+begin_algorithmic
-\Function{CriticalDeltaChi2}{$\vec p, \alpha, \ntoys$}
-\State $array$ \gets $[]$
+\Function{SampleDeltaChi2}{$\vec p, \ntoys$}
+\State $samples$ \gets $[]$
 \ForAll{$k \in [1, \dots, \ntoys]$}
 \State $N_k$ \gets \Call{Fluctuate}{$\vec p$}
 \State $\Delta \chi_k^2$ \gets \Call{DeltaChi2}{$N_k, \vec p$}
-\State $array[k]$ \gets $\Delta \chi_k^2$
+\State $samples[k]$ \gets $\Delta \chi_k^2$
 \EndFor
-\State \Call{sort}{$array$}
+\State \Return $samples$
+\EndFunction
+
+#+end_algorithmic
+#+end_algorithm
+
+When one wishes to draw a single confidence region boundary a /critical/ $\Delta \chi^2_c$ for a specific confidence level $\alpha$ can be found from a set of sampled $\Delta \chi^2$ values at a given point $\vec p$ in parameter space.  This is shown in \textsc{CriticalDeltaChi2}[[alg:criticaldeltachi2]].  When the $\Delta \chi^2$ value constructed from a measure from a real experiment for a given point $\vec p$ compares less than the $\Delta \chi^2_c$ at that point then that point is included in the confidence region at the confidence level $\alpha$.  This is illustrated in \textsc{ConfidenceRegion}[[alg:confidenceregion]].  A benefit of eagerly applying a determined value of $\alpha$ is that the array $samples$ of $\Delta \chi^2$ values over the toys at one point in parameter space $\vec p$ may be discarded.  Once the comparison against $\Delta \chi_c^2$ is made, the only data retained for the point $\vec p$ is Boolean (to be in the CR or not to be in the CR).
+
+#+begin_algorithm
+#+caption: The /critical/ $\Delta \chi_c^2$ such that the cumulative distribution of the $\Delta \chi^2_k$ is equal to $\alpha$.  The $array$ is as returned from \textsc{SampledDeltaChi2}.
+#+name: alg:criticaldeltachi2
+#+begin_algorithmic
+\Function{CriticalDeltaChi2}{$array, \alpha$}
+\State \Call{sort}{$samples$}
 \State $index$ \gets \Call{round}{$\alpha \times \ntoys$} \Comment{Or an interpolation can be done for more precision}
 \State $\Delta \chi_c^2$ \gets $array[index]$
 \State \Return $\Delta \chi_c^2$
@@ -199,6 +226,7 @@ The remaining algorithms are more fully formed though some may still allow appli
 
 #+begin_algorithm
 #+caption: The subset of the parameter space containing the true parameter point consistent with the measurement $\nmeas$ at a confidence level $\alpha$ using $\ntoys$ Monte Carlo results for each test point in the parameter space.
+#+name: alg:confidenceregion
 #+begin_algorithmic
 \Function{ConfidenceRegion}{$\nmeas, \alpha, \ntoys$}
 \State $array$ \gets $[]$
@@ -213,3 +241,30 @@ The remaining algorithms are more fully formed though some may still allow appli
 \EndFunction
 #+end_algorithmic
 #+end_algorithm
+
+For large $n_{toys}$ or large parameter space, this may provde substantial reduction in required storage.  However, it also reduces flexibility to draw confidence regions at new confidence levels determined in the future.  The \textsc{ConfidenceManifold}[[alg:confidencemanifold]] is a variant on [[alg:criticaldeltachi2]] and [[alg:confidenceregion]] which requires all "toy" results and produces at each point in parameter space the level of confidence that the point is consistent with the measurement.  Any confidence level may then be selected and via interpolation on the scalar field its confidence region boundary may be drawn.
+
+
+
+#+begin_algorithm
+#+caption: Assign a $1-p$ confidence value to each point in parameter space
+#+name: alg:confidencemanifold
+#+begin_algorithmic
+\Function{ConfidenceManifold}{$\nmeas, \ntoys$}
+\State $array$ \gets $[]$
+\ForAll{$\vec p \in \pspace$}
+\State $samples$ \gets \Call{SampleDeltaChi2}{$\vec p, \ntoys$}
+\State $\Delta \chi^2_{meas}$ \gets \Call{DeltaChi2}{$\nmeas, \vec p$}
+\State $n_{gt}$ \gets \Call{NumGreaterThan}{$\nmeas, samples$}
+\State $\alpha$ \gets $n_{gt}/\ntoys$
+\State \Call{Append}{$array, \alpha$}
+\EndFor
+\State \Return $array$
+\EndFunction
+#+end_algorithmic
+#+end_algorithm
+
+
+* Application
+
+t.b.d.  "old" to "new" world.  application of oscillation.  Initial unbinned event approach and binned approach.
