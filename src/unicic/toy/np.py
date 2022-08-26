@@ -52,35 +52,40 @@ def fluctuate(Npred, rng, xp=xp):
     return rng.poisson(Npred)
 
 
-def statvar_cnp_diag(Npred, N, xp=xp):
-    '''Return the diagonal of the statistical covariance matrix.
+def statvar_cnp_diag(Npred, Nmeas, xp=xp):
+    '''Return the diagonal of the statistical covariance matrix
+    following "combined Nyeman-Pearson" construction with additional
+    protection for zeros and infinites.
+    
+    Npred and Nmeas may be any mix of scalar shape (nbins,) or batched
+    (nbatch, nbins).  If either are batched, the return is batched.
+    If both are batched, they must be batched the same size and a
+    batch-to-batch comparison is make.
 
-    Npred may be scalar shape (nbins,) or batched (nbatch, nbins).
+    '''
 
-    The "combined Neyman-Pearson" construction is used with protection
-    for zeros and infinities.'''
+    num = 3.0 * Nmeas * Npred
+    den = 2.0 * Nmeas + Npred
 
-    num = 3.0 * N * Npred
-    den = 2.0 * N + Npred
+    good_meas = Nmeas > 0
+    num = xp.where(good_meas, num, 0.5*Npred)
+    den = xp.where(good_meas, den, 1.0)
 
-    good_N = N > 0                  # "data"
-    num = xp.where(good_N, num, 0.5*Npred)
-    den = xp.where(good_N, den, 1.0)
-
-    good_both = xp.logical_and(Npred > 0, good_N)
-    num = xp.where(good_both, num, N)
+    good_both = xp.logical_and(Npred > 0, good_meas)
+    num = xp.where(good_both, num, Nmeas)
     den = xp.where(good_both, den, 1)
 
     diag = num/den
     return diag
 
-def statvar_cnp_scalar(Npred, N, xp=xp):
-    diag = statvar_cnp_diag(Npred, N, xp)
-    return diag * xp.eye(N.size)
-def statvar_cnp_batched(Npred, N, xp=xp):
+# def statvar_cnp_scalar(Npred, N, xp=xp):
+#     diag = statvar_cnp_diag(Npred, N, xp)
+#     return diag * xp.eye(N.size)
+def statvar_cnp(Npred, N, xp=xp):
     diag = statvar_cnp_diag(Npred, N, xp)
     diag = xp.expand_dims(diag, axis=1)
-    return diag * xp.eye(N.size)
+    I = xp.eye(N.shape[-1])
+    return diag * I
 
 
 

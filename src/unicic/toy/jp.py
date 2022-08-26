@@ -24,10 +24,9 @@ def predict_scalar(q, ms, xp=xp):
 
 predict_batched = jax.vmap(predict_scalar, in_axes=(0,None))
 
-def statvar_cnp_scalar(Npred, N, xp=xp):
-    return _np.statvar_cnp_scalar(Npred, N, xp=xp)
-
-statvar_cnp_batched = jax.vmap(statvar_cnp_scalar, in_axes=(0,None))
+def statvar_cnp(Npred, Ndata, xp=xp):
+    return _np.statvar_cnp(Npred, Ndata, xp=xp)
+#statvar_cnp = jax.vmap(statvar_cnp, in_axes=(0,0), out_axes=0)
 
 def fluctuate(Npred, rng, xp=xp):
     return rng.poisson(Npred)
