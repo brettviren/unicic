@@ -1,35 +1,11 @@
 #!/usr/bin/env python3
-'''The "toy" problem for testing, implemented for numpy/cupy
+'''The "toy" problem for testing, implemented for numpy.
 
-A *_scalar() function takes and produces non-batched input.
-
-A *_batched() function takes input array(s) which are batched over
-axis=0 and returns likewise.
-
+This file also defines the API that .cp and .jp modules folow.
 '''
 
-import numpy
-xp = numpy
-
-Random = numpy.random.default_rng
-
-def uniform(rng, low=0.0, high=1.0, size=None):
-    return rng.uniform(low, high, size)
-
-# def predict_scalar(q, ms, xp=xp):
-#     '''Return a predicted measure at parameter point q on measure
-#     linspace ms in the context of array module xp.
-
-#     q is shaped (3,)
-
-#     Return is shaped as ms.
-#     '''
-#     mu,sig,mag = q.T            # same for scalar or batched
-
-#     gnorm = mag / (xp.sqrt(2*xp.pi))
-    
-#     d = ms - mu             # (nbins,) 
-#     return gnorm * xp.exp(-0.5*((d/sig)**2))
+import unicic.low.np as low
+xp = low.xp
 
 def predict(q, ms, xp=xp):
     '''Return a predicted measure at parameter point q on measure
@@ -48,12 +24,6 @@ def predict(q, ms, xp=xp):
         pred = pred.reshape((ms.size,))
     return pred
 
-def fluctuate(Npred, rng, xp=xp):
-    '''
-    Return fluctuated measure of expectation
-    '''
-    return rng.poisson(Npred)
-
 
 def statvar_cnp_diag(Npred, Nmeas, xp=xp):
     '''Return the diagonal of the statistical covariance matrix
@@ -66,7 +36,6 @@ def statvar_cnp_diag(Npred, Nmeas, xp=xp):
     batch-to-batch comparison is make.
 
     '''
-
     num = 3.0 * Nmeas * Npred
     den = 2.0 * Nmeas + Npred
 
@@ -81,26 +50,17 @@ def statvar_cnp_diag(Npred, Nmeas, xp=xp):
     diag = num/den
     return diag
 
-# def statvar_cnp_scalar(Npred, N, xp=xp):
-#     diag = statvar_cnp_diag(Npred, N, xp)
-#     return diag * xp.eye(N.size)
+
 def statvar_cnp(Npred, N, xp=xp):
+    '''Statistical part of the covariance.
+
+    Follows combined Neyman-Pearson.
+    '''
     diag = statvar_cnp_diag(Npred, N, xp)
     diag = xp.expand_dims(diag, axis=1)
     I = xp.eye(N.shape[-1])
     return diag * I
 
-
-def inv(a, xp=xp):
-    '''
-    Return the multiplicative inverse of a.
-
-    Raises ValueError if singular
-    '''
-    try:
-        return xp.linalg.inv(a)
-    except LinAlgError as lae:
-        raise ValueError("singular matrix") from lae
 
 def chi2(Npred, Nmeas, covinv, xp=xp):
     '''Return the chi2 value between the expectation value of

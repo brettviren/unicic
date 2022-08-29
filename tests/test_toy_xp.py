@@ -46,8 +46,8 @@ def test_predict_scalar_zz(predict_scalar_results):
 
 def do_statvar_scalar(toyx, nbins):
     Npred = predict_scalar(toyx, nbins)
-    rng = toyx.Random(42)
-    Ndata = toyx.fluctuate(Npred, rng)
+    rng = toyx.low.Random(42)
+    Ndata = toyx.low.fluctuate(Npred, rng)
     return toyx.statvar_cnp(Npred, Ndata), Ndata, Npred
     
 
@@ -91,8 +91,8 @@ def test_predict_batched_zz(predict_batched_results):
 
 def do_fluctuate(toyx, nbins, nbatch):
     Npred = do_predict_batched(toyx, nbins, nbatch)
-    rng = toyx.Random(42)
-    Ndata = toyx.fluctuate(Npred, rng)
+    rng = toyx.low.Random(42)
+    Ndata = toyx.low.fluctuate(Npred, rng)
     return Ndata, Npred
 
 @pytest.mark.parametrize("toyx,nbins,nbatch",

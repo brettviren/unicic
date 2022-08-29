@@ -35,12 +35,12 @@ def make_shapes(n=3, nb=5):
 @pytest.mark.parametrize('toyx,shapes',
                          product(toyxs, make_shapes()))
 def test_ein(toyx, shapes):
-    rng = toyx.Random(42) 
+    rng = toyx.low.Random(42) 
 
     arrs = list()
     for shape in shapes:
         size = int(toyx.xp.product(toyx.xp.array(shape, dtype=int)))
-        arr = toyx.uniform(rng, size = size)
+        arr = toyx.low.uniform(rng, size = size)
         arr = arr.reshape(shape)
         arrs.append(arr)
 

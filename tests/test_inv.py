@@ -4,7 +4,7 @@ import time
 from itertools import product
 
 import unicic.toy as toy
-from unicic.testing import pairwise_check_arrays
+from unicic.testing import pairwise_check_arrays, timeit
 
 # compare between all toys
 toyxs = (toy.np,toy.cp,toy.jp)
@@ -15,10 +15,10 @@ epsilon = 1e-6
 @pytest.mark.parametrize('toyx',toyxs)
 def test_diag(toyx):
     nbins = 100
-    rng = toyx.Random(42)
-    diag = toyx.uniform(rng, size=nbins)
+    rng = toyx.low.Random(42)
+    diag = toyx.low.uniform(rng, size=nbins)
     m = diag * toyx.xp.eye(nbins)
-    minv = toyx.inv(m)
+    minv = toyx.low.inv(m)
     for d, dinv in zip(diag, toyx.xp.diag(minv)):
         winv = 1.0/d
         diff = abs(winv-dinv)
@@ -28,9 +28,9 @@ def test_diag(toyx):
 @pytest.mark.parametrize('toyx',toyxs)
 def test_random(toyx):
     nbins = 100
-    rng = toyx.Random(42)
-    m = toyx.uniform(rng, size=nbins*nbins).reshape((nbins,nbins))
-    minv = toyx.inv(m)
+    rng = toyx.low.Random(42)
+    m = toyx.low.uniform(rng, size=nbins*nbins).reshape((nbins,nbins))
+    minv = toyx.low.inv(m)
 
 def asotma(n, xp):
     '''Matrix A_n from A Set of Test Matrices
@@ -56,7 +56,7 @@ def astoma_results():
 def test_asotma(astoma_results, toyx, nb):
     epsilon = 5e-3
     a = asotma(nb, toyx.xp)
-    ainv = toyx.inv(a)
+    ainv = toyx.low.inv(a)
     one = toyx.xp.sum(ainv[:,0])
     if abs(one-1.0) > epsilon:
         raise ValueError(f'asotma column zero sum failed {toyx.__name__} 1.0 != {one}')
@@ -75,26 +75,27 @@ def test_astoma_zz(astoma_results):
 def test_roundtrip(toyx, nb):
     epsilon = 5e-5
     a1 = asotma(nb, toyx.xp)
-    ainv = toyx.inv(a1)
-    a2 = toyx.inv(ainv)
+    ainv = toyx.low.inv(a1)
+    a2 = toyx.low.inv(ainv)
     for x1,x2 in zip(a1.reshape(-1), a2.reshape(-1)):
         d = abs(x1-x2)
         if d > epsilon:
             raise ValueError(f'round trip {toyx.__name__} inaccurate |{x1} - {x2}| = {d} > {epsilon}')
 
 
-## this fails on jax due to memory outage.  someone please buy me a big GPU!!
-@pytest.mark.parametrize('toyx,nbins,nbatches',product(toyxs[:-1], (10,100), (1, 10, 100, 1000)))
+
+## Double-pump the nbatch=1 case to work around the fact that first
+## jax result seems subject to "warmup"
+@pytest.mark.parametrize('toyx,nbins,nbatches',product(toyxs, (10,100), (1,1, 10, 100)))
 def test_speed(toyx, nbins, nbatches):
-    rng = toyx.Random(42)
+    rng = toyx.low.Random(42)
     size = nbatches*nbins*nbins
-    m = toyx.uniform(rng, size=size).reshape((nbatches,nbins,nbins))
-    rounds = 1 + (100*100*100) // size
-    # print(f'{rounds} rounds of {nbatches} x ({nbins},{nbins})')
-    t1 = time.perf_counter()
-    for _ in range(rounds):
-        minv = toyx.inv(m)
-    t2 = time.perf_counter()
-    dt = t2-t1
-    each = dt / (rounds*nbatches)
-    print(f'{toyx.__name__}: {rounds} rounds of {nbatches} x ({nbins},{nbins}) in {dt:.3f} s, {1.0/each:.1f} Hz')
+    m = toyx.low.uniform(rng, size=size).reshape((nbatches,nbins,nbins))
+
+    num,mean,sig = timeit(lambda: toyx.low.inv(m), maxsecs=1, maxn=10000)
+
+    tot = num*mean
+
+    hz = nbatches/mean
+
+    print(f'{toyx.__name__}: {hz:.0f} Hz ({nbins},{nbins}) x {nbatches} * {num} in  mean={mean:.3f} +/- {sig:.4f}, tot={tot:.2f} s')
