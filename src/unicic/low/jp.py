@@ -3,6 +3,8 @@
 The Jax implementation of the low level unicic API
 '''
 
+from functools import reduce
+
 import jax
 # https://github.com/google/jax#current-gotchas
 jax.config.update('jax_enable_x64', True)
@@ -44,3 +46,25 @@ def inv(a, xp=xp):
     # fixme: how to error catch to convert to ValueError?
     return xp.linalg.inv(a)
 
+def linspace(start, stop, num, endpoint=True, xp=xp):
+    return _np.linspace(start, stop, num, endpoint=endpoint, xp=xp)
+
+def map_reduce(mfunc, rfunc, iterable, *, initial=None, nproc=1):
+    '''Map mfunc on each in iterable and reduce that with rfunc.
+
+    If initial is given it is provided first to rfunc.
+
+    '''
+
+    if nproc > 1:
+        nproc = 1
+    if nproc == 1:
+        return _np.map_reduce(mfunc, rfunc, iterable, initial=initial, nproc=1)
+    else:
+        pmfunc = jax.pmap(mfunc)
+        res = pmfunc(iterable)
+        
+    if initial is None:
+        return reduce(rfunc, res)
+    return reduce(rfunc, res, initial)
+    

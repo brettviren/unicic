@@ -3,34 +3,34 @@ import pytest
 import time
 from itertools import product
 
-import unicic.toy as toy
+from unicic import low
+
 from unicic.testing import pairwise_check_arrays, timeit
 
 # compare between all toys
-toyxs = (toy.np,toy.cp,toy.jp)
-
+lowxs = (low.np,low.cp,low.jp)
 
 epsilon = 1e-6
 
-@pytest.mark.parametrize('toyx',toyxs)
-def test_diag(toyx):
+@pytest.mark.parametrize('lowx',lowxs)
+def test_diag(lowx):
     nbins = 100
-    rng = toyx.low.Random(42)
-    diag = toyx.low.uniform(rng, size=nbins)
-    m = diag * toyx.xp.eye(nbins)
-    minv = toyx.low.inv(m)
-    for d, dinv in zip(diag, toyx.xp.diag(minv)):
+    rng = lowx.Random(42)
+    diag = lowx.uniform(rng, size=nbins)
+    m = diag * lowx.xp.eye(nbins)
+    minv = lowx.inv(m)
+    for d, dinv in zip(diag, lowx.xp.diag(minv)):
         winv = 1.0/d
         diff = abs(winv-dinv)
         if diff > epsilon:
-            raise ValueError(f'diag inv {toyx.__name__} diff:{diff} 1/{d} = {winv}, got {dinv}')
+            raise ValueError(f'diag inv {lowx.__name__} diff:{diff} 1/{d} = {winv}, got {dinv}')
 
-@pytest.mark.parametrize('toyx',toyxs)
-def test_random(toyx):
+@pytest.mark.parametrize('lowx',lowxs)
+def test_random(lowx):
     nbins = 100
-    rng = toyx.low.Random(42)
-    m = toyx.low.uniform(rng, size=nbins*nbins).reshape((nbins,nbins))
-    minv = toyx.low.inv(m)
+    rng = lowx.Random(42)
+    m = lowx.uniform(rng, size=nbins*nbins).reshape((nbins,nbins))
+    minv = lowx.inv(m)
 
 def asotma(n, xp):
     '''Matrix A_n from A Set of Test Matrices
@@ -50,52 +50,52 @@ nbs = 2,10
 
 @pytest.fixture(scope="module")
 def astoma_results():
-    yield {nb:{t:None for t in toyxs} for nb in nbs}
+    yield {nb:{t:None for t in lowxs} for nb in nbs}
 
-@pytest.mark.parametrize('toyx,nb',product(toyxs, nbs))
-def test_asotma(astoma_results, toyx, nb):
+@pytest.mark.parametrize('lowx,nb',product(lowxs, nbs))
+def test_asotma(astoma_results, lowx, nb):
     epsilon = 5e-3
-    a = asotma(nb, toyx.xp)
-    ainv = toyx.low.inv(a)
-    one = toyx.xp.sum(ainv[:,0])
+    a = asotma(nb, lowx.xp)
+    ainv = lowx.inv(a)
+    one = lowx.xp.sum(ainv[:,0])
     if abs(one-1.0) > epsilon:
-        raise ValueError(f'asotma column zero sum failed {toyx.__name__} 1.0 != {one}')
+        raise ValueError(f'asotma column zero sum failed {lowx.__name__} 1.0 != {one}')
     for col in range(1,nb):
-        zero = toyx.xp.sum(ainv[:,col])
+        zero = lowx.xp.sum(ainv[:,col])
         if abs(zero) > epsilon:
-            raise ValueError(f'asotma column {col} sum failed {toyx.__name__} 0.0 != {zero}')
-    astoma_results[nb][toyx] = ainv
+            raise ValueError(f'asotma column {col} sum failed {lowx.__name__} 0.0 != {zero}')
+    astoma_results[nb][lowx] = ainv
 
 def test_astoma_zz(astoma_results):
     epsilon = 5e-5
     pairwise_check_arrays(astoma_results, epsilon)
     
 
-@pytest.mark.parametrize('toyx,nb',product(toyxs, nbs))
-def test_roundtrip(toyx, nb):
+@pytest.mark.parametrize('lowx,nb',product(lowxs, nbs))
+def test_roundtrip(lowx, nb):
     epsilon = 5e-5
-    a1 = asotma(nb, toyx.xp)
-    ainv = toyx.low.inv(a1)
-    a2 = toyx.low.inv(ainv)
+    a1 = asotma(nb, lowx.xp)
+    ainv = lowx.inv(a1)
+    a2 = lowx.inv(ainv)
     for x1,x2 in zip(a1.reshape(-1), a2.reshape(-1)):
         d = abs(x1-x2)
         if d > epsilon:
-            raise ValueError(f'round trip {toyx.__name__} inaccurate |{x1} - {x2}| = {d} > {epsilon}')
+            raise ValueError(f'round trip {lowx.__name__} inaccurate |{x1} - {x2}| = {d} > {epsilon}')
 
 
 
 ## Double-pump the nbatch=1 case to work around the fact that first
 ## jax result seems subject to "warmup"
-@pytest.mark.parametrize('toyx,nbins,nbatches',product(toyxs, (10,100), (1,1, 10, 100)))
-def test_speed(toyx, nbins, nbatches):
-    rng = toyx.low.Random(42)
+@pytest.mark.parametrize('lowx,nbins,nbatches',product(lowxs, (10,100), (1,1, 10, 100)))
+def test_speed(lowx, nbins, nbatches):
+    rng = lowx.Random(42)
     size = nbatches*nbins*nbins
-    m = toyx.low.uniform(rng, size=size).reshape((nbatches,nbins,nbins))
+    m = lowx.uniform(rng, size=size).reshape((nbatches,nbins,nbins))
 
-    num,mean,sig = timeit(lambda: toyx.low.inv(m), maxsecs=1, maxn=10000)
+    num,mean,sig = timeit(lambda: lowx.inv(m), maxsecs=1, maxn=10000)
 
     tot = num*mean
 
     hz = nbatches/mean
 
-    print(f'{toyx.__name__}: {hz:.0f} Hz ({nbins},{nbins}) x {nbatches} * {num} in  mean={mean:.3f} +/- {sig:.4f}, tot={tot:.2f} s')
+    print(f'{lowx.__name__}: {hz:.0f} Hz ({nbins},{nbins}) x {nbatches} * {num} in  mean={mean:.3f} +/- {sig:.4f}, tot={tot:.2f} s')

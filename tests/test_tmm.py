@@ -3,10 +3,10 @@ import pytest
 
 from itertools import product
 
-import unicic.toy as toy
+from unicic import low
 
-# compare between all toys
-toyxs = (toy.np, toy.cp, toy.jp)
+# Import low-level API
+lowxs = (low.np, low.cp, low.jp)
 
 
 # In chi2 we multiply three: a @ M @ b
@@ -32,15 +32,15 @@ def make_shapes(n=3, nb=5):
 # All n/c/j have einsum() but perhaps constructing the needed strings
 # is expensive?
 
-@pytest.mark.parametrize('toyx,shapes',
-                         product(toyxs, make_shapes()))
-def test_ein(toyx, shapes):
-    rng = toyx.low.Random(42) 
+@pytest.mark.parametrize('lowx,shapes',
+                         product(lowxs, make_shapes()))
+def test_ein(lowx, shapes):
+    rng = lowx.Random(42) 
 
     arrs = list()
     for shape in shapes:
-        size = int(toyx.xp.product(toyx.xp.array(shape, dtype=int)))
-        arr = toyx.low.uniform(rng, size = size)
+        size = int(lowx.xp.product(lowx.xp.array(shape, dtype=int)))
+        arr = lowx.uniform(rng, size = size)
         arr = arr.reshape(shape)
         arrs.append(arr)
 
@@ -59,11 +59,11 @@ def test_ein(toyx, shapes):
 
     ein = f'{eina},{einM},{einb} -> {einc}'
     # print(ein)
-    c = toyx.xp.einsum(ein, a, M, b)
+    c = lowx.xp.einsum(ein, a, M, b)
 
     # print(f'\n{a.shape} @ {M.shape} @ {b.shape} = {c.shape}')
 
     if len(c.shape) != bout:
-        raise ValueError(f'bad shape: {toyx.__name__} {shapes}: {c}')
+        raise ValueError(f'bad shape: {lowx.__name__} {shapes}: {c}')
 
 

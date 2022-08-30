@@ -4,7 +4,7 @@ Utility functions which are generic to the array library
 '''
 
 def rebatch(array, size, axis=0):
-    '''Partition array to tuple of rebatched and remainders.
+    '''Partition array to tuple of rebatched and remainder arrays.
 
     The rebatched array will have given axis become the given size and
     then gain an additional first axis which size that of the number
