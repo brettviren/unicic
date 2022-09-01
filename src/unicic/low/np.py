@@ -36,22 +36,19 @@ def inv(a, xp=xp):
         print('You probably need to fix your covariance matrix.')
         raise
 
-def linspace(start, stop, num, endpoint=True, xp=xp):
-    '''Return evenly spaced samples over interval.
+def gridspace(start, stop, num, endpoint=True, xp=xp):
+    '''Return points on a grid.
 
-    start and stop may, together, be scalar or array.
+    start and stop must have same shape and may be scalar or 1D array.
 
-    num may be scalar or array.
+    num must be scalar or shaped same as start and stop.
 
-    If num is array and has the same shape as start and stop, the
-    linspace production is mapped over each element after all three
-    arrays are flattened.  A tuple of the flattened map result is
-    returned with each element a 1D array.
+    If start is None, zeros shaped as stop are assumed.
 
-    If num is array but has differing shape as start and stop then the
-    linspace is mapped only over the flattened num array.  A tuple of
-    this map is returned with each element having one more dimension
-    as start/stop.
+    If scalar, then shape (num,) returned.
+
+    If array, then shape (product, start.size) returned where product
+    is the product of elements of num.
 
     '''
     stop = xp.array(stop)
@@ -59,19 +56,17 @@ def linspace(start, stop, num, endpoint=True, xp=xp):
         start = xp.zeros_like(stop)
     else:
         start = xp.array(start)
-
     num = xp.array(num)
-
-    if len(num.shape) == 0: 
-        # Scalar num, return is shaped (num,)
+    ndims = len(start.shape)
+    if ndims == 0:              # full scalar
         return xp.linspace(start, stop, int(num), endpoint=endpoint)
-    
-    if num.shape == start.shape and num.shape == stop.shape:
-        fls = [xp.linspace(a,o,int(n)) for a,o,n in zip(start.reshape(-1), stop.reshape(-1), num.reshape(-1))]
-        return tuple(fls)
-    
-    fls = [xp.linspace(start, stop, int(n)) for n in num.reshape(-1)]
-    return tuple(fls)
+
+    if len(num.shape) == 0 and ndims > 0:
+        num = xp.array([num]*start.size)
+
+    axes = [xp.linspace(a, o, int(n), endpoint=endpoint) for a,o,n in zip(start,stop,num)]
+    mg = xp.meshgrid(*axes)
+    return xp.vstack([g.reshape(-1) for g in mg]).T
 
 
 def map_reduce(mfunc, rfunc, iterable, *, initial=None, nproc=1):
