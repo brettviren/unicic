@@ -83,27 +83,33 @@ class Toy(model.Base):
 
     def chi2(self, Npred, Nmeas, covinv):
         '''Return the chi2 value between the expectation value of
-        predicted measure Npred and an actual measure Nmeas and INVERSE of
-        a covariance matrix invcov.
+        predicted measure Npred and an actual measure Nmeas and
+        INVERSE of a covariance matrix invcov.
 
-        Npred and Nmeas may be any mix of scalar shape (nbins,) or batched
-        (nbatch, nbins), etc for convinv (nbins,nbins) or
-        (nbatch,nbins,nbins).  If any are batched then so is the return.
-        If the N's are not batched but the covinv is, the calculation will
-        work.  However, this may not be a meaninful thing.
+        Npred and Nmeas may be any mix of scalar shape (nbins,) or
+        batched (nbatch, nbins), etc for convinv (nbins,nbins) or
+        (nbatch,nbins,nbins).  If any are batched then so is the
+        return.  Any batching must be matched.  If the N's are not
+        batched but the covinv is, the calculation will work, however,
+        this may not be a meaninful thing to do.
 
         '''
         # see test_tmm.test_ein for sussing this out
+    
+        # get batched dimensions
+        pdims = len(Npred.shape)-1
+        cdims = len(covinv.shape)-2
+        mdims = len(Nmeas.shape)-1
+        odims = max((pdims,cdims,mdims))
 
-        ndims = [Npred.shape, covinv.shape, Nmeas.shape]
-        nbs = ndims[0]-1, ndims[1]-2, ndims[2]-1
-        eina = 'B'*nbs[0] + 'i'
-        einM = 'B'*nbs[1] + 'ij'
-        einb = 'B'*nbs[2] + 'j'
-        bout = max(nbs)
-        einc = 'B'*bout
-        ein = f'{eina},{einM},{einb} -> {einc}'
-        return self.xp.einsum(ein, Npred, covinv, Nmeas)
+        einp = 'B'*pdims + 'i'
+        einc = 'B'*cdims + 'ij'
+        einm = 'B'*mdims + 'j'
+        eino = 'B'*odims
+
+        ein = f'{einp},{einc},{einm} -> {eino}'
+        ret = self.xp.einsum(ein, Npred, covinv, Nmeas)
+        return ret
 
     
     

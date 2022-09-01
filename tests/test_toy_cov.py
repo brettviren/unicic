@@ -20,7 +20,7 @@ qtrues = product((1.0,5.0, 11.0),
 def test_toy_cov_nonzero(lowx,qtrue):
     toy = Toy(lowx)
     xp = lowx.xp
-    mspace = lowx.linspace(0, 10, 100)
+    mspace = lowx.gridspace(0, 10, 100)
     Npred = toy.predict(qtrue, mspace)
     if not xp.all(Npred > 0):
         print (f'\nNpred:\n{Npred}\nqtrue:\n{qtrue}')

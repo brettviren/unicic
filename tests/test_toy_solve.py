@@ -12,7 +12,7 @@ from itertools import product
 from unicic import low
 from unicic.toy import Toy
 from unicic.util import rebatch
-from unicic.testing import pairwise_check_arrays
+from unicic.testing import timeit
 
 # the array parameters may be chunked into batches of this size
 #chunks = (1,10,100,1000)
@@ -32,7 +32,7 @@ qtrues = list(product(means, sigs, mags))
 #npbins = [25, (100,100,100)]
 npbins = [(25,26,27)]
 mm_mean = [(0.1,10)]
-mm_sig = [(0.1,10)]
+mm_sig = [(2.0,10)]
 mm_mag = [(1.0,100)]
 pspaces = list(product(npbins, mm_mean, mm_sig, mm_mag))
 
@@ -63,7 +63,7 @@ def test_qbest(qbest_results, lowx, problem, chunk):
     npbin,*pmm = pspace
     pmm = xp.array(pmm).T   
     pspace = lowx.gridspace(pmm[0], pmm[1], npbin)
-    print(f'pspace:{pspace.shape}')
+    # print(f'pspace:{pspace.shape}')
 
     nmbin,(ms_min,ms_max) = mspace
     mspace = lowx.gridspace(ms_min, ms_max, nmbin)
@@ -80,7 +80,7 @@ def test_qbest(qbest_results, lowx, problem, chunk):
         bpspaces.append(pspace_remain)
 
     def chi2(q):
-        print(f'chi2: q:{q.shape}')
+        # print(f'chi2: q:{q.shape}')
         npred = toy.predict(q, mspace)
         if not xp.all(npred > 0):
             for qi,npredi in zip(q,npred):
@@ -98,14 +98,17 @@ def test_qbest(qbest_results, lowx, problem, chunk):
             print(q)
             return xp.array([xp.nan]*q.shape[0])
 
-        print('chi2:',q.shape, npred.shape, covinv.shape)
+        # print(f'chi2: q:{q.shape} npred:{npred.shape} nmeas:{Nmeas.shape} covinv:{covinv.shape}')
         return toy.chi2(npred, Nmeas, covinv)
 
     def append(l, a):
         l.append(a)
         return l
 
-    chi2s = xp.hstack(lowx.map_reduce(chi2, append, bpspaces, initial=list()))
+    def doit():
+        return xp.hstack(lowx.map_reduce(chi2, append, bpspaces, initial=list()))
+    chi2s = doit()
+    num,mean,sig = timeit(doit, maxsecs=1, maxn=10000)
 
     maxchi2 = 9e9
     bad = xp.zeros_like(chi2s) + maxchi2
@@ -115,4 +118,8 @@ def test_qbest(qbest_results, lowx, problem, chunk):
     indbest = xp.argmin(chi2s)
     qbest = pspace[indbest]
 
-    print(indbest, qbest, qtrue)
+    nq = pspace.shape[0]
+    khz = 0.0001*nq/mean
+
+    print('\nsolve:', indbest, qbest, qtrue)
+    print(f'{lowx.__name__}\t{nq}\t{khz:.1f}kHz\t{mean*1000:.3f}ms +/- {sig*1000:.5f}ms\t{chunk}\t{num}')

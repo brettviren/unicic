@@ -33,7 +33,8 @@ def inv(a, xp=xp):
     except numpy.linalg.LinAlgError as lae:
         raise ValueError("singular matrix") from lae
     except ValueError as err:
-        print('You probably need to fix your covariance matrix.')
+        if not xp.all(xp.diag(a) > 0):
+            print('zeros on diagonal of covariance matrix')
         raise
 
 def gridspace(start, stop, num, endpoint=True, xp=xp):

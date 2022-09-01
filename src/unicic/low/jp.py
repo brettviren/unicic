@@ -46,8 +46,8 @@ def inv(a, xp=xp):
     # fixme: how to error catch to convert to ValueError?
     return xp.linalg.inv(a)
 
-def linspace(start, stop, num, endpoint=True, xp=xp):
-    return _np.linspace(start, stop, num, endpoint=endpoint, xp=xp)
+def gridspace(start, stop, num, endpoint=True, xp=xp):
+    return _np.gridspace(start, stop, num, endpoint=endpoint, xp=xp)
 
 def map_reduce(mfunc, rfunc, iterable, *, initial=None, nproc=1):
     '''Map mfunc on each in iterable and reduce that with rfunc.

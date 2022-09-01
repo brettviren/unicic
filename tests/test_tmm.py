@@ -45,7 +45,6 @@ def test_ein(lowx, shapes):
         arrs.append(arr)
 
     a,M,b = arrs
-    # print(f'\n{a.shape} @ {M.shape} @ {b.shape}')
     ndims = [len(s) for s in shapes]
 
     nbs = ndims[0]-1, ndims[1]-2, ndims[2]-1
@@ -58,10 +57,7 @@ def test_ein(lowx, shapes):
     einc = 'B'*bout
 
     ein = f'{eina},{einM},{einb} -> {einc}'
-    # print(ein)
     c = lowx.xp.einsum(ein, a, M, b)
-
-    # print(f'\n{a.shape} @ {M.shape} @ {b.shape} = {c.shape}')
 
     if len(c.shape) != bout:
         raise ValueError(f'bad shape: {lowx.__name__} {shapes}: {c}')

@@ -33,8 +33,8 @@ def inv(a, xp=xp):
     except LinAlgError as lae:
         raise ValueError("singular matrix") from lae
 
-def linspace(start, stop, num, endpoint=True, xp=xp):
-    return _np.linspace(start, stop, num, endpoint=endpoint, xp=xp)
+def gridspace(start, stop, num, endpoint=True, xp=xp):
+    return _np.gridspace(start, stop, num, endpoint=endpoint, xp=xp)
 
 
 def map_reduce(mfunc, rfunc, iterable, *, initial=None, nproc=1):
